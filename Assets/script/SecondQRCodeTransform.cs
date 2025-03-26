@@ -1,85 +1,98 @@
+/**
+ * @file SecondQRCodeTransform.cs
+ * @brief Manages tracking and feedback for the small QR code attached to a propeller.
+ *
+ * This class tracks a secondary QR code and uses visual indicators (ball, tick, cross)
+ * to show if it is in the correct position relative to a propeller hologram.
+ */
+
 using UnityEngine;
 using Vuforia;
 
 public class SecondQRCodeTransform : MonoBehaviour
 {
-    //this class is responsible for managing the small QR code attached to the propeller. There are 6 game objects in the scene(Propeller 1 to 6), each of them
-    // has this script as their component.Using this script, you can track the small QR's position.
-    //A small sphere is used to indicate whether the small QR code is in the correct position or not. If the small QR code is in the correct position, the sphere will turn green.
-    //Also the tick and cross is used to indicate if user is using the correct number index of propeller.
+    private ImageTargetBehaviour imageTargetBehaviour; ///< Used for tracking the small QR code.
+    /// <summary>
+    /// Reference to the PropellerManager.
+    /// </summary>
+    public PropellerManager propellerManager;
 
-
-    private ImageTargetBehaviour imageTargetBehaviour;//using vuforia image target behaviour to track the small QR code's position
-
-    public PropellerManager propellerManager; // Reference to the propeller manager script, which is handling the propellers' hologram
-
-    public GameObject ballPrefab; // Prefab for the ball
+    /// <summary>
+    /// Prefab for the ball indicator.
+    /// </summary>
+    public GameObject ballPrefab;
     private GameObject ballInstance;
 
-    public GameObject prefabRight; // Prefab for a tick
-    public GameObject prefabWrong; // Prefab for a cross
+    /// <summary>
+    /// Prefab for the tick indicator.
+    /// </summary>
+    public GameObject prefabRight;
+    /// <summary>
+    /// Prefab for the cross indicator.
+    /// </summary>
+    public GameObject prefabWrong;
     private GameObject rightInstance;
     private GameObject wrongInstance;
 
-    public int qrCodeID;//this is the number index of the propeller
+    /// <summary>
+    /// The number index of the propeller associated with this QR code.
+    /// </summary>
+    public int qrCodeID;
 
-
+    /**
+     * @brief Initializes the small QR code tracking and visual indicators.
+     *
+     * Instantiates the ball, tick, and cross prefabs.
+     */
     void Start()
     {
-        // Find the ImageTargetBehaviour component on the same GameObject
         imageTargetBehaviour = GetComponent<ImageTargetBehaviour>();
-
-
-
-        // Create the ball and set it to inactive initially
         ballInstance = Instantiate(ballPrefab);
         ballInstance.SetActive(false);
-
         rightInstance = Instantiate(prefabRight);
         rightInstance.SetActive(false);
-
         wrongInstance = Instantiate(prefabWrong);
         wrongInstance.SetActive(false);
-
     }
 
+    /**
+     * @brief Updates tracking and indicator positions every frame.
+     *
+     * If the QR code is tracked, updates the positions of the ball, tick, and cross,
+     * and calls UpdateQRCodeDisplay to determine which indicator to show.
+     */
     void Update()
     {
         if (imageTargetBehaviour != null)
         {
-            // Get the status of the Image Target
             TargetStatus targetStatus = imageTargetBehaviour.TargetStatus;
-
-            // Check if the Image Target is being tracked
             if (targetStatus.Status == Status.TRACKED)
             {
-                // Get the position of the Image Target
                 Vector3 secondQRPosition = imageTargetBehaviour.transform.position;
                 Quaternion secondQRRotation = imageTargetBehaviour.transform.rotation;
-
-                // Update ball, tick and corss's position
-                ballInstance.transform.position = secondQRPosition - new Vector3(0, 0.03f, 0); // Adjust offset if needed( this is becuase tracking quality is bad, so we may obtain a wrong coordinate, so you could update it accordingly)
+                ballInstance.transform.position = secondQRPosition - new Vector3(0, 0.03f, 0);
                 rightInstance.transform.position = secondQRPosition - new Vector3(0, 0.015f, 0);
                 rightInstance.transform.rotation = secondQRRotation * Quaternion.Euler(0, 0, 0);
                 wrongInstance.transform.position = secondQRPosition - new Vector3(0, 0.03f, 0);
                 wrongInstance.transform.rotation = secondQRRotation * Quaternion.Euler(0, 0, 0);
-
-                UpdateQRCodeDisplay();//decide whether to show the ball or tick or cross
-
-
-                if (propellerManager != null&& propellerManager.isMounting)//when user is mounting the propeller, show the ball
+                UpdateQRCodeDisplay();
+                if (propellerManager != null && propellerManager.isMounting)
                 {
                     propellerManager.CheckSecondQRCodePosition(ballInstance.transform.position, this);
                 }
             }
             else
             {
-                // Hide everything if the QR code is not being tracked
                 HideAll();
             }
         }
-
     }
+
+    /**
+     * @brief Updates which QR code indicator is visible.
+     *
+     * Shows the ball indicator during mounting; otherwise shows tick or cross based on QR code ID.
+     */
     public void UpdateQRCodeDisplay()
     {
         if (propellerManager.isMounting)
@@ -92,6 +105,11 @@ public class SecondQRCodeTransform : MonoBehaviour
         }
     }
 
+    /**
+     * @brief Displays the ball indicator.
+     *
+     * Activates the ball and hides tick and cross indicators.
+     */
     private void ShowBall()
     {
         ballInstance.SetActive(true);
@@ -99,9 +117,14 @@ public class SecondQRCodeTransform : MonoBehaviour
         wrongInstance.SetActive(false);
     }
 
+    /**
+     * @brief Displays the tick or cross indicator.
+     *
+     * If the QR code ID matches the current propeller index, shows a tick; otherwise, shows a cross.
+     */
     private void ShowPrefab()
     {
-        if (qrCodeID == propellerManager.currentCopterIndex+1)
+        if (qrCodeID == propellerManager.currentCopterIndex + 1)
         {
             rightInstance.SetActive(true);
             wrongInstance.SetActive(false);
@@ -114,18 +137,26 @@ public class SecondQRCodeTransform : MonoBehaviour
         ballInstance.SetActive(false);
     }
 
+    /**
+     * @brief Hides all QR code indicators.
+     */
     private void HideAll()
     {
         ballInstance.SetActive(false);
         rightInstance.SetActive(false);
         wrongInstance.SetActive(false);
     }
-    public void ChangeBallColor(Color color)//this function is used in propeller manager to change the ball color
+
+    /**
+     * @brief Changes the color of the ball indicator.
+     *
+     * @param color The new color to apply.
+     */
+    public void ChangeBallColor(Color color)
     {
         if (ballInstance != null)
         {
             ballInstance.GetComponent<Renderer>().material.color = color;
         }
     }
-
 }

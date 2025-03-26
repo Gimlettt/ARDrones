@@ -1,3 +1,10 @@
+/**
+ * @file InteractionManager.cs
+ * @brief Manages user interactions for the AR propeller mounting experiment.
+ *
+ * This class handles dialogs, UI updates, and action logging during the propeller mounting process.
+ */
+
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
@@ -7,47 +14,73 @@ using System.IO;
 using System;
 
 public class InteractionManager : MonoBehaviour
-    //this class is for handling the logic of the app
 {
+    /// <summary>
+    /// Dialog for choosing symmetric or unsymmetric setting.
+    /// </summary>
     public GameObject chooseSettingSymmetricDialog;
+    /// <summary>
+    /// Dialog for choosing the number of propellers.
+    /// </summary>
     public GameObject chooseSettingNumberDialog;
 
-    public TextMeshPro progressTextSlate;//reference to the window that shows the instruction
+    /// <summary>
+    /// UI element displaying progress or instructions.
+    /// </summary>
+    public TextMeshPro progressTextSlate;
 
     public GameObject startbutton;
     public GameObject toggleFreezeButton;
-    public GameObject slightAdjustmentButton;//this button is not used in the app, is for my training scene
-    public GameObject confirmCopterButton;//when one propeller is mounted, user press this button
-    public GameObject adjustmentFinishButton;//this is after user freeze the box's hologram,user press the Next button
-    public GameObject confirmCopterIndexButton;//this is for user confirm they are grabbing the correct propeller
-    public GameObject Cable_button;//this is for user to confirm the plug is plugged in
+    public GameObject slightAdjustmentButton;
+    public GameObject confirmCopterButton;
+    public GameObject adjustmentFinishButton;
+    public GameObject confirmCopterIndexButton;
+    public GameObject Cable_button;
 
     private int currentStep = 0;
-    private int coptersToMount;//overall how many propellers to mount
-    private bool isSymmetric;//decide for configuration
+    private int coptersToMount;
+    private bool isSymmetric;
 
-    public PropellerManager propellerManager; //reference to the propellerManager
+    /// <summary>
+    /// Reference to the PropellerManager.
+    /// </summary>
+    public PropellerManager propellerManager;
 
-    private string logPath;// the path to save the time log
-    private float startTime;//this is to log the time user uses to mount one propeller
-    private float overallStartTime;//to log the time for the whole process
-    private List<float> copterMountTimes = new List<float>();//each time the propeller is mounted,log to a list the time
+    private string logPath;
+    private float startTime;
+    private float overallStartTime;
+    private List<float> copterMountTimes = new List<float>();
 
+    /**
+     * @brief Initializes the interaction manager.
+     *
+     * Sets up logging and displays the initial configuration dialog.
+     */
     void Start()
     {
-        string timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", System.Globalization.CultureInfo.InvariantCulture);//to find a ti
+        string timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss", System.Globalization.CultureInfo.InvariantCulture);
         logPath = Application.persistentDataPath + $"/copterMountTimes_{timestamp}.txt";
-        ShowChooseSettingSymmetricDialog();//the first dialog, to choose configuration
+        ShowChooseSettingSymmetricDialog();
     }
 
+    /**
+     * @brief Displays the symmetric/unsymmetric configuration dialog.
+     *
+     * Logs the action and updates the progress text.
+     */
     void ShowChooseSettingSymmetricDialog()
     {
-        LogAction("ShowChooseSettingSymmetricDialog");//take down the time when press the button
+        LogAction("ShowChooseSettingSymmetricDialog");
         chooseSettingSymmetricDialog.SetActive(true);
         progressTextSlate.text = "Choose Symmetric or Unsymmetric";
     }
 
-    public void OnSymmetricSelected()//if choose the symmetric configuration, note this step is done by me not the user, so all the other buttons are hanging around
+    /**
+     * @brief Handles selection of symmetric configuration.
+     *
+     * Sets the symmetric flag, hides the dialog, and shows the number selection dialog.
+     */
+    public void OnSymmetricSelected()
     {
         LogAction("OnSymmetricSelected");
         isSymmetric = true;
@@ -55,6 +88,11 @@ public class InteractionManager : MonoBehaviour
         ShowChooseSettingNumberDialog();
     }
 
+    /**
+     * @brief Handles selection of unsymmetric configuration.
+     *
+     * Sets the symmetric flag to false, hides the dialog, and shows the number selection dialog.
+     */
     public void OnUnsymmetricSelected()
     {
         LogAction("OnUnsymmetricSelected");
@@ -63,6 +101,11 @@ public class InteractionManager : MonoBehaviour
         ShowChooseSettingNumberDialog();
     }
 
+    /**
+     * @brief Displays the dialog to select the number of propellers.
+     *
+     * Logs the action and updates the progress text.
+     */
     void ShowChooseSettingNumberDialog()
     {
         LogAction("ShowChooseSettingNumberDialog");
@@ -70,7 +113,14 @@ public class InteractionManager : MonoBehaviour
         progressTextSlate.text = "Choose Number of Propellers";
     }
 
-    public void OnNumberSelected(int numberOfCopters)//choose the number configuration
+    /**
+     * @brief Handles the selection of the number of propellers.
+     *
+     * Configures the PropellerManager and shows the start button.
+     *
+     * @param numberOfCopters Number of propellers selected.
+     */
+    public void OnNumberSelected(int numberOfCopters)
     {
         LogAction("OnNumberSelected: " + numberOfCopters);
         coptersToMount = numberOfCopters;
@@ -82,7 +132,12 @@ public class InteractionManager : MonoBehaviour
         Show_Start_button();
     }
 
-    public void Show_Start_button()//user start from this step
+    /**
+     * @brief Displays the start button and hides other UI elements.
+     *
+     * Updates the progress text with instructions.
+     */
+    public void Show_Start_button()
     {
         LogAction("Show_Start_button");
         progressTextSlate.text = "Press Start to start the experiment";
@@ -95,89 +150,110 @@ public class InteractionManager : MonoBehaviour
         adjustmentFinishButton.SetActive(false);
     }
 
+    /**
+     * @brief Handles the start button click event.
+     *
+     * Updates instructions, toggles UI elements, and starts the overall experiment timer.
+     */
     public void On_start_clicked()
     {
         LogAction("On_start_clicked");
         progressTextSlate.text = "Look at the QR Code and Click the freeze button.\n" +
                                  "Move the box to align (High precision not required)\n" +
-                                 "Under unfreeze, the hologram track the QR code. Under freeze\n" +
-                                 "the hologram will remain its position. You can choose between";
+                                 "Under unfreeze, the hologram tracks the QR code. Under freeze,\n" +
+                                 "the hologram will remain in its position. You can choose between";
         startbutton.SetActive(false);
         toggleFreezeButton.SetActive(true);
-        adjustmentFinishButton.SetActive(true);//the next button in the scene
-
-        // Start overall timer
+        adjustmentFinishButton.SetActive(true);
         overallStartTime = Time.time;
     }
 
-    public void OnAdjustmentConfirmed()//the next button is attached with this funtion
+    /**
+     * @brief Handles the confirmation of adjustments.
+     *
+     * Hides the adjustment button and prompts the user to grab a propeller.
+     */
+    public void OnAdjustmentConfirmed()
     {
         LogAction("OnAdjustmentConfirmed");
         adjustmentFinishButton.SetActive(false);
         AskGrabCopter();
     }
 
-    void AskGrabCopter()//ask user to grab a propeller
+    /**
+     * @brief Prompts the user to grab the next propeller.
+     *
+     * Updates the progress text and starts an individual timer.
+     */
+    void AskGrabCopter()
     {
         LogAction("AskGrabCopter");
-        progressTextSlate.text = $"Check the number on the propeller and find number  {currentStep + 1}\n"+
+        progressTextSlate.text = $"Check the number on the propeller and find number {currentStep + 1}\n" +
                                   "Grab it and press confirm number button";
         confirmCopterIndexButton.SetActive(true);
-        // Start individual copter timer
         startTime = Time.time;
-
-        //check if the relavant small QR has been ticked green, if so directly call OnconfirmNumber.This can be implement here, if user scan the small QR and
-        //if there is right tick, can direclty call OnconfirmNumber(). But I haven't implement it. It's optional.
     }
 
-    public void OnconfirmNumber()//the confirmCopterIndexButton is attached with this function
+    /**
+     * @brief Handles the confirmation of the propeller index.
+     *
+     * Updates UI elements and activates the next propeller hologram.
+     */
+    public void OnconfirmNumber()
     {
         LogAction("OnconfirmNumber");
         confirmCopterIndexButton.SetActive(false);
         confirmCopterButton.SetActive(true);
-
         progressTextSlate.text = "SLIDE the propeller to match the holograms.\n" +
-                                  "If the small QR code is scanned, the ball will turn green at correct position.\n"+
-                                  $"Then press Confirm Propeller.                  {currentStep + 1}/{coptersToMount}.";
-
-        // Activate the next propeller's hologram after updating the UI
+                                 "If the small QR code is scanned, the ball will turn green at the correct position.\n" +
+                                 $"Then press Confirm Propeller.                  {currentStep + 1}/{coptersToMount}.";
         propellerManager.ActivateNextCopter();
-
-        
     }
 
-    public void OnMountCopterButtonClicked()//the fonfirmCopterButton is attached with this function
+    /**
+     * @brief Handles the mounting of the propeller.
+     *
+     * Updates instructions and shows the cable connection UI.
+     */
+    public void OnMountCopterButtonClicked()
     {
         LogAction("OnMountCopterButtonClicked");
         currentStep++;
-        progressTextSlate.text = "Insert the cable of propeller to the plug\n"+
-                                 "it is an orange circle on the hologram, flip the glasses to insert";
+        progressTextSlate.text = "Insert the cable of propeller to the plug\n" +
+                                 "It is an orange circle on the hologram, flip the glasses to insert";
         Cable_button.SetActive(true);
         confirmCopterButton.SetActive(false);
     }
 
-    public void OnCableMounted()//this si attached to the Cable_button
+    /**
+     * @brief Handles the cable mounting event.
+     *
+     * Logs the mounting time, updates the PropellerManager, and either prompts for the next propeller or finalizes the process.
+     */
+    public void OnCableMounted()
     {
         LogAction("OnCableMounted");
-        float copterMountTime = Time.time - startTime;// individual propeller mount time is logged
-        copterMountTimes.Add(copterMountTime);//save to a list
-        propellerManager.FinishMountingStep();//inform the propeller Manager the mounting is finish, toggle the isMounting flag
+        float copterMountTime = Time.time - startTime;
+        copterMountTimes.Add(copterMountTime);
+        propellerManager.FinishMountingStep();
         if (currentStep < coptersToMount)
         {
             AskGrabCopter();
-            
         }
         else
         {
             progressTextSlate.text = "All Propellers Mounted!";
-            
-            // Stop overall timer and log times
             float overallTime = Time.time - overallStartTime;
             LogTimes(overallTime);
         }
         Cable_button.SetActive(false);
     }
 
+    /**
+     * @brief Logs the overall and individual propeller mounting times.
+     *
+     * @param overallTime The total time taken for the experiment.
+     */
     private void LogTimes(float overallTime)
     {
         using (StreamWriter writer = new StreamWriter(logPath, true))
@@ -191,14 +267,16 @@ public class InteractionManager : MonoBehaviour
         Debug.Log("Times logged to " + logPath);
     }
 
+    /**
+     * @brief Logs an action with a timestamp.
+     *
+     * @param action A description of the action.
+     */
     private void LogAction(string action)
     {
         using (StreamWriter writer = new StreamWriter(logPath, true))
         {
-            // Get the current time in UTC with the full date, time, and milliseconds
             string timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss.fff", System.Globalization.CultureInfo.InvariantCulture);
-
-            // Write the timestamp and action to the log file
             writer.WriteLine($"{timestamp} - {action}");
         }
         Debug.Log(action + " logged to " + logPath);

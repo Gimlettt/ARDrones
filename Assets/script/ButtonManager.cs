@@ -1,31 +1,48 @@
+/**
+ * @file ButtonManager.cs
+ * @brief Manages UI button functionality for freeze/unfreeze and adjust operations.
+ *
+ * This class handles the UI interactions for freezing and adjusting elements in the scene.
+ */
+
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 
 public class ButtonManager : MonoBehaviour
 {
-    //this class is responsible for managing the freeze/unfreeze button in the scene
-    public TextMeshPro freezeButtonText; // Reference to the TextMeshPro text component on the freeze button
-    public TextMeshPro adjustButtonText; // Reference to the TextMeshPro text component on the adjust button,this is only used in my training scene
+    /// <summary>
+    /// Reference to the TextMeshPro component on the freeze button.
+    /// </summary>
+    public TextMeshPro freezeButtonText;
 
+    /// <summary>
+    /// Reference to the TextMeshPro component on the adjust button (used in the training scene).
+    /// </summary>
+    public TextMeshPro adjustButtonText;
 
-    private bool Frozen = false; // Initial state for the freeze button
-    private bool Locked = true; // Initial state for the adjust button
+    private bool Frozen = false;   ///< Initial freeze state.
+    private bool Locked = true;    ///< Initial adjust state.
 
+    /**
+     * @brief Initializes button texts.
+     *
+     * Called on startup to set default texts for the freeze and adjust buttons.
+     */
     void Start()
     {
-        // Initialize button texts
         freezeButtonText.text = "Freeze!";
         adjustButtonText.text = "Click to adjust ";
     }
 
-    // Method to be called when the freeze button is clicked
+    /**
+     * @brief Handles the freeze button click event.
+     *
+     * Toggles the freeze state and updates the button text accordingly.
+     */
     public void OnFreezeButtonClick()
     {
-        // Toggle the state
         Frozen = !Frozen;
-
-        // Update the button text based on the state
         if (Frozen)
         {
             freezeButtonText.text = "Unfreeze!";
@@ -34,21 +51,23 @@ public class ButtonManager : MonoBehaviour
         {
             freezeButtonText.text = "Freeze!";
         }
-
-
     }
 
+    /**
+     * @brief Handles the adjust button click event.
+     *
+     * Toggles the adjust state and updates the button text accordingly.
+     */
     public void OnAdjustButtonClick()
     {
-        // Toggle the state
         Locked = !Locked;
-        if (Locked) { 
+        if (Locked)
+        { 
             adjustButtonText.text = "Click to adjust";
         }
         else
         {
             adjustButtonText.text = "Adjusting";
         }
-
     }
 }

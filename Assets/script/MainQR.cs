@@ -1,3 +1,11 @@
+/**
+ * @file MainQR.cs
+ * @brief Manages the main QR code for tracking the box in AR.
+ *
+ * This class handles QR code tracking using Vuforia, updates the box hologram's position and color,
+ * and manages plug and guidance window displays.
+ */
+
 using UnityEngine;
 using TMPro;
 using Vuforia;
@@ -6,184 +14,202 @@ using Microsoft.MixedReality.Toolkit.Input;
 
 public class MainQR : MonoBehaviour
 {
-    //this class is for handling the big/main QR code on the box. We use it track the position of the real box. Around this coordinate,
-    //we place the hologram of the propellers.Due to the fact that when people move their head the hologram of the
-    //box will move, we can to freeze the box's hologram. This is done by the freeze button in the scene.
-    //Use can either use unfreeze the hologram all the tie, so it will keep tracking the QR code, but if not tracked, no hologram will be shown. Or
-    // they can freeze the hologram, so that the hologram will stay in the last position when the QR code is tracked.
-    //Due to vuforia's capability, we might manually adjust the hologram's position in the code.
-    //We also use this code to manage the color of box's hologram. When the box's hologram is frozen, the box will turn green.
-    //We also change the plug's color when needed.
-
-    private ImageTargetBehaviour imageTargetBehaviour;//using vuforia image target behaviour to track the small QR code's position
-
-    public PropellerManager propellerManager;//reference to the propellerManager
-    public InteractionManager interactionManager;//reference to the interactionManager
-    public GameObject window;  // Reference to the progress text
-    public Camera arCamera;  // Reference to the vuforia's AR camera
+    private ImageTargetBehaviour imageTargetBehaviour; ///< Tracks the main QR code.
+    
+    /// <summary>
+    /// Reference to the PropellerManager.
+    /// </summary>
+    public PropellerManager propellerManager;
+    /// <summary>
+    /// Reference to the InteractionManager.
+    /// </summary>
+    public InteractionManager interactionManager;
+    /// <summary>
+    /// Reference to the UI window for progress display.
+    /// </summary>
+    public GameObject window;
+    /// <summary>
+    /// Reference to the AR camera.
+    /// </summary>
+    public Camera arCamera;
 
     private bool isFrozen = false;
-    public PressableButtonHoloLens2 toggleFreezeButton;//reference to the freeze button
+    /// <summary>
+    /// Reference to the freeze button.
+    /// </summary>
+    public PressableButtonHoloLens2 toggleFreezeButton;
 
-    private bool hasWindowTrackedOnce = false; // Flag to check if window tracking has occurred.
-    private Vector3 lastKnownWindowPosition;//the big QR's position. We only track it once to know where to place the guidance window
+    private bool hasWindowTrackedOnce = false;
+    private Vector3 lastKnownWindowPosition;
     private Quaternion lastKnownWindowRotation;
 
-    public GameObject Box;//reference to the box's hologram
-    public GameObject[] boxChildren;//According to the CAD model, the box has 2 childeren, we access them to be able to change their color
-    public Material materialBad;//A transparent green materal
-    public Material materialGood;//A transparent purple material
-    public GameObject[] plugs;//reference to the plugs, a list
-    public Material materialPlug;//A orange material to show the plug
+    /// <summary>
+    /// Reference to the box hologram.
+    /// </summary>
+    public GameObject Box;
+    /// <summary>
+    /// Array of child objects of the box used for color changes.
+    /// </summary>
+    public GameObject[] boxChildren;
+    /// <summary>
+    /// Material applied when the box is frozen.
+    /// </summary>
+    public Material materialBad;
+    /// <summary>
+    /// Material applied when the box is unfrozen.
+    /// </summary>
+    public Material materialGood;
+    /// <summary>
+    /// Array of plugs whose colors are updated.
+    /// </summary>
+    public GameObject[] plugs;
+    /// <summary>
+    /// Material for the plug when activated.
+    /// </summary>
+    public Material materialPlug;
 
-
-
+    /**
+     * @brief Initializes the main QR code and associated components.
+     *
+     * Sets up the image target for QR tracking, hides the box, and attaches the freeze button event.
+     */
     void Start()
     {
-        imageTargetBehaviour = GetComponent<ImageTargetBehaviour>();//how to use vuforia to track the big QR code
-
+        imageTargetBehaviour = GetComponent<ImageTargetBehaviour>();
         if (imageTargetBehaviour == null)
         {
             Debug.LogError("No Image Target found on this GameObject.");
         }
-
         Box.SetActive(false);
-
         if (toggleFreezeButton != null)
         {
-            toggleFreezeButton.ButtonPressed.AddListener(ToggleFreeze);//attach the ToggleFreeze method to the button   
+            toggleFreezeButton.ButtonPressed.AddListener(ToggleFreeze);
         }
-
-
     }
 
+    /**
+     * @brief Updates the box hologram and guidance window each frame.
+     *
+     * If the QR code is tracked and not frozen, updates the box position, color, and propeller positions.
+     */
     void Update()
     {
-        if (imageTargetBehaviour != null && !isFrozen)//when unfreeze, we want to track the QR code's position
+        if (imageTargetBehaviour != null && !isFrozen)
         {
             TargetStatus targetStatus = imageTargetBehaviour.TargetStatus;
-
-            if (targetStatus.Status == Status.TRACKED)//there is 3 mode of tracking, and we only use tracked status
+            if (targetStatus.Status == Status.TRACKED)
             {
                 Vector3 qrPosition = imageTargetBehaviour.transform.position;
                 Quaternion qrRotation = imageTargetBehaviour.transform.rotation;
-
                 Vector3 cameraToQR = qrPosition - arCamera.transform.position;
-                cameraToQR.Normalize();//we get a normal vector between the camera and the QR, because we notice that the offset in tracking is in this direction.
-
-                Vector3 adjustedPosition = qrPosition + new Vector3(0, -0.045f, 0) + cameraToQR * 0.03f;//shifted the hologram downwards and push it further a bit
-
+                cameraToQR.Normalize();
+                Vector3 adjustedPosition = qrPosition + new Vector3(0, -0.045f, 0) + cameraToQR * 0.03f;
                 Box.transform.position = adjustedPosition;
-                Box.transform.rotation = qrRotation * Quaternion.Euler(-90, 0, 0);// the -90 is origianted from the box was not facing up
-
+                Box.transform.rotation = qrRotation * Quaternion.Euler(-90, 0, 0);
                 Box.SetActive(true);
-                ColorChange(isFrozen);// call the color change method, so that if the box is froze it's green, otherwise purple
-
-                propellerManager.UpdateCylinderPositions(adjustedPosition, qrRotation);//keep updating the propellers' position around the box
+                ColorChange(isFrozen);
+                propellerManager.UpdateCylinderPositions(adjustedPosition, qrRotation);
                 if (propellerManager.isDisplaying)
                 {
-                    propellerManager.ChangePlugColor();//this part is for handling when user within the mounting process freeze/unfreeze, the plug color is still shown correctly
+                    propellerManager.ChangePlugColor();
                 }
-
-
-
-                //Box.transform.parent = null;This is to achieve: when we are in unfreeze mode, if we don't track the box, the hologram won't be gone
-
-                // Only update the window position once
                 if (!hasWindowTrackedOnce)
                 {
                     lastKnownWindowPosition = qrPosition;
                     lastKnownWindowRotation = Quaternion.LookRotation(arCamera.transform.position - lastKnownWindowPosition);
                     UpdateWindowPosition();
-
                     hasWindowTrackedOnce = true;
                 }
             }
             else
             {
                 Box.SetActive(false);
-                
             }
         }
-
         if (hasWindowTrackedOnce)
         {
-            // Continue to update the window to face the user, when people move around the box, the window will face them
             UpdateWindowPosition();
         }
     }
 
+    /**
+     * @brief Toggles the freeze state of the box hologram.
+     *
+     * Updates propeller positions and changes the box color based on the freeze state.
+     */
     void ToggleFreeze()
     {
         isFrozen = !isFrozen;
         Debug.Log("Freeze state toggled: " + isFrozen);
-
         if (isFrozen && imageTargetBehaviour)
-        {//as long as the hologram is frozen, we update all the propellers' position to match the box's position
+        {
             Vector3 qrPosition = imageTargetBehaviour.transform.position;
             Quaternion qrRotation = imageTargetBehaviour.transform.rotation;
-
             Vector3 cameraToQR = qrPosition - arCamera.transform.position;
             cameraToQR.Normalize();
-
-            Vector3 adjustedPosition = qrPosition + new Vector3(0, -0.045f, 0) + cameraToQR * 0.03f;// same logic as the update
-
-            propellerManager.UpdateCylinderPositions(adjustedPosition, qrRotation);//this method is to position the propellers around the box. Note only when user press the freeze button, the copter position will be updated
+            Vector3 adjustedPosition = qrPosition + new Vector3(0, -0.045f, 0) + cameraToQR * 0.03f;
+            propellerManager.UpdateCylinderPositions(adjustedPosition, qrRotation);
         }
         ColorChange(isFrozen);
-        if (propellerManager.isDisplaying) { 
-        propellerManager.ChangePlugColor();//this part is for handling when user within the mounting process freeze/unfreeze, the plug color is still shown correctly
+        if (propellerManager.isDisplaying)
+        { 
+            propellerManager.ChangePlugColor();
+        }
     }
 
-    }
-
-
-
+    /**
+     * @brief Updates the position and orientation of the guidance window.
+     *
+     * Positions the window above the box and rotates it to face the AR camera.
+     */
     void UpdateWindowPosition()
     {
-        // Set the window's position 20cm above the QR code's original position
         Vector3 windowPosition = lastKnownWindowPosition + new Vector3(0, 0.2f, 0);
         window.transform.position = windowPosition;
-
-        // Make the window face the user
         Vector3 directionToCamera = arCamera.transform.position - window.transform.position;
-        directionToCamera.y = 0; // Lock the rotation in the y-axis to avoid tilting
+        directionToCamera.y = 0;
         Quaternion targetRotation = Quaternion.LookRotation(-directionToCamera);
         window.transform.rotation = targetRotation;
     }
 
-
-
-    public void ColorChange(bool isBad)// handling the box's color, if frozen, green, otherwise purple
+    /**
+     * @brief Changes the box's color based on its freeze state.
+     *
+     * Iterates over the box's children and updates their materials.
+     *
+     * @param isBad If true, applies the good material; otherwise, applies the bad material.
+     */
+    public void ColorChange(bool isBad)
     {
-        foreach (GameObject child in boxChildren)//the box has 2 children, we change their color
+        foreach (GameObject child in boxChildren)
         {
             Renderer[] renderers = child.GetComponentsInChildren<Renderer>();
-
             foreach (Renderer renderer in renderers)
             {
                 if (renderer != null)
                 {
-                    // Get all materials of the renderer
                     Material[] materials = renderer.materials;
-
-                    // Loop through each material and update it
                     for (int i = 0; i < materials.Length; i++)
                     {
                         materials[i] = isBad ? materialGood : materialBad;
                     }
-
-                    // Apply the updated materials back to the renderer
                     renderer.materials = materials;
                 }
             }
         }
     }
 
-    public void ShowPlug(int copterOrder)//handling the plug's color
+    /**
+     * @brief Updates the plug color based on the current propeller.
+     *
+     * Changes the material of the plug corresponding to the current propeller index.
+     *
+     * @param copterOrder The order number of the propeller.
+     */
+    public void ShowPlug(int copterOrder)
     {
-        Renderer plugRenderer = plugs[copterOrder - 1].GetComponent<Renderer>();//plug[0]correspond to the first copterOrder
-        if (copterOrder != 1)//when the next plug change to orange, the previous plug will change back to bad
+        Renderer plugRenderer = plugs[copterOrder - 1].GetComponent<Renderer>();
+        if (copterOrder != 1)
         {
             Renderer previous_plug = plugs[copterOrder - 2].GetComponent<Renderer>();
             if (isFrozen)
@@ -195,6 +221,6 @@ public class MainQR : MonoBehaviour
                 previous_plug.material = materialBad;
             }
         }
-        plugRenderer.material = materialPlug;//change the plug's color to orange
+        plugRenderer.material = materialPlug;
     }
 }
