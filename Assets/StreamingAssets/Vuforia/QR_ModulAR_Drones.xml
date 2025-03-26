@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<QCARConfig>
+  <Tracking>
+    <ImageTarget name="box_main_target" size="0.100000 0.100000" />
+    <ImageTarget name="prop_8" size="0.100000 0.100000" />
+    <ImageTarget name="prop_7" size="0.100000 0.100000" />
+    <ImageTarget name="prop_6" size="0.100000 0.100000" />
+    <ImageTarget name="prop_5" size="0.100000 0.100000" />
+    <ImageTarget name="prop_4" size="0.100000 0.100000" />
+    <ImageTarget name="prop_3" size="0.100000 0.100000" />
+    <ImageTarget name="prop_2" size="0.100000 0.100000" />
+    <ImageTarget name="prop_1" size="0.100000 0.100000" />
+  </Tracking>
+</QCARConfig>
